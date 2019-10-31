@@ -20,8 +20,8 @@ Disclaimer 2: **This code is provided as is.**
 ## To run the bot
 
 - Initiate ngrok *ngrok http 8080* and take note of the Forwarding Address
-- Create a new app with Teams App Studio and register a new bot (take note of the App ID and App Secret values - don't forget to enable calling for this bot and developer preview for your Teams web/destop client)
-- Fill Out the bot messages and calling endpoints as follow: ngrokForwardingAddress/api/messages and ngrokForwardingAddress/api/calls
+- Create a new app with Teams App Studio and register a new bot with the personal scope (take note of the App ID and App Secret values - **don't forget to enable calling for this bot and developer preview for your Teams web/destop client**)
+- Fill out the bot messages and calling endpoints as follow: ngrokForwardingAddress/api/messages and ngrokForwardingAddress/api/calls
 - Open the bot registration in Azure AD (*https://aad.portal.azure.com*) and enable and consent the calling bot permissions, according to the [documentation](https://docs.microsoft.com/en-us/graph/api/resources/communications-api-overview?view=graph-rest-beta)
 - Git clone this repository
 - Create a new .env file, if not available, and add (and fill out) the following items: MicrosoftAppId, MicrosoftAppPassword, tenantID, ngrok and playPromptURL. For the playPromptURL, I recommend a small wav file, that could be hosted in an Azure blob storage.
