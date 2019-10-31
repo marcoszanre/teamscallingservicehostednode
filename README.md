@@ -6,6 +6,10 @@ Disclaimer 1: This sample is an extension of the Echo bot, available through bot
 
 Disclaimer 2: **This code is provided as is.**
 
+## Demo
+
+[![Teams Calling Bot demo sample](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](https://youtu.be/0xQMIyF5F60)
+
 ## Prerequisites
 
 * Node.js
