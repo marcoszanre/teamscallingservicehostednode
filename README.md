@@ -47,7 +47,7 @@ This bot implements the following Microsoft Graph calling endpoints:
 
 ### Next Steps
 
-Following are some items could be considered for future versions of this repository, but feel free to add other suggestions.
+Following are some items that could be considered for improvements of this sample:
 
 - Validate bot incoming requests (best practice)
 - Integrate with Cognitive Services to leverage the audio clips to understand what was said and act accordingly
