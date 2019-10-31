@@ -6,6 +6,8 @@ Disclaimer 1: This sample is an extension of the Echo bot, available through bot
 
 Disclaimer 2: **This code is provided as is.**
 
+Disclaimer 3: Official samples (including C#) are available in the [following link](https://github.com/microsoftgraph/microsoft-graph-comms-samples).
+
 ## Demo
 
 [![Teams Calling Bot demo sample](https://img.youtube.com/vi/0xQMIyF5F60/0.jpg)](https://youtu.be/0xQMIyF5F60)
