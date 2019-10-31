@@ -47,7 +47,7 @@ Following are some items could be considered for future versions of this reposit
 
 - Authenticate bot for post requests (best practice)
 - Integrate with Cognitive Services to leverage the audio clips to understand what was said and act accordingly
-- 
+- Implement additional endpoints, such as Redirect Call, Create and Participants management scenarios.
 
 ## Further reading
 
