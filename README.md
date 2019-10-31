@@ -35,7 +35,7 @@ The usage flow for this demo bot is as follows:
 
 1. User calls bot from within a Team custom app
 2. Bot answers with a default audio message
-3. Bot listens for tones pressed by the user: Tone 1 will route the bot to record an audio clip, whose content can be obtained from the location and token specified in the request through the ngrok inspector). Tone 2 will hang up. Besides the ngrok inspector, bot actions are logged (console.log) to the node terminal.
+3. Bot listens for tones pressed by the user: Tone 1 will route the bot to record an audio clip, whose content can be obtained from the location and token specified in the request through the ngrok inspector. Tone 2 will hang up. Besides the ngrok inspector, bot actions are logged (console.log) to the node terminal.
 
 This bot implements the following Microsoft Graph calling endpoints:
 - Answer call
