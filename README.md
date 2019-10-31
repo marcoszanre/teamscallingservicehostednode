@@ -1,61 +1,60 @@
-# my-chat-bot
+# Sample Teams Calling bot with Node.js and service hosted media
 
-Demonstrate the core capabilities of the Microsoft Bot Framework
+Demonstrate the ability to answer and manage a call with Teams service hosted media capabilities exposed through Microsoft Graph.
 
-This bot has been created using [Bot Framework](https://dev.botframework.com), it shows how to create a simple bot that accepts input from the user and echoes it back.
+Disclaimer 1: This sample is an extension of the Echo bot, available through bot builder as a [Yeoman generator](https://www.npmjs.com/package/generator-botbuilder?activeTab=readme)
+
+Disclaimer 2: **This code is provided as is.**
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org) version 10.14.1 or higher
-
-    ```bash
-    # determine node version
-    node --version
-    ```
+* Node.js
+* Git
+* Visual Studio Code
+* ngrok
 
 ## To run the bot
 
-- Install modules
+- Initiate ngrok *ngrok http 8080* and take note of the Forwarding Address
+- Create a new app with Teams App Studio and register a new bot (take note of the App ID and App Secret values - don't forget to enable calling for this bot and developer preview for your Teams web/destop client)
+- Fill Out the bot messages and calling endpoints as follow: ngrokForwardingAddress/api/messages and ngrokForwardingAddress/api/calls
+- Open the bot registration in Azure AD (*https://aad.portal.azure.com*) and enable and consent the calling bot permissions, according to the [documentation](https://docs.microsoft.com/en-us/graph/api/resources/communications-api-overview?view=graph-rest-beta)
+- Git clone this repository
+- Create a new .env file, if not available, and add (and fill out) the following items: MicrosoftAppId, MicrosoftAppPassword, tenantID, ngrok and playPromptURL. For the playPromptURL, I recommend a small wav file, that could be hosted in an Azure blob storage.
+- Install all dependencies (npm install)
+- From a console, e.g. PowerShell, run *node index.js*
+- Install the Teams App Studio and call the bot
 
-    ```bash
-    npm install
-    ```
+Moreover, it is highly recommended to inspect calls being made to your ngrok Forwarding Address endpoint through the following URL (http://localhost:4040), and optionally, additional calls, once the call has been established, can be made directly through Postman or Fiddler (e.g. play prompt, record audio clip or subscribe to tone).
 
-- Start the bot
+The usage flow for this demo bot is as follows:
 
-    ```bash
-    npm start
-    ```
+1. User calls bot from within a Team custom app
+2. Bot answers with a default audio message
+3. Bot listens for tones pressed by the user: Tone 1 will route the bot to record an audio clip, whose content can be obtained from the location and token specified in the request through the ngrok inspector). Tone 2 will hang up. Besides the ngrok inspector, bot actions are logged (console.log) to the node terminal.
 
-## Testing the bot using Bot Framework Emulator
+This bot implements the following Microsoft Graph calling endpoints:
+- Answer call
+- Play Prompt
+- Subscribe to tone
+- Record Audio Clip
+- Delete (Hang Up)
+- Listen for notification events
 
-[Bot Framework Emulator](https://github.com/microsoft/botframework-emulator) is a desktop application that allows bot developers to test and debug their bots on localhost or running remotely through a tunnel.
+### Next Steps
 
-- Install the Bot Framework Emulator version 4.3.0 or greater from [here](https://github.com/Microsoft/BotFramework-Emulator/releases)
+Following are some items could be considered for future versions of this repository, but feel free to add other suggestions.
 
-### Connect to the bot using Bot Framework Emulator
-
-- Launch Bot Framework Emulator
-- File -> Open Bot
-- Enter a Bot URL of `http://localhost:3978/api/messages`
-
-## Deploy the bot to Azure
-
-To learn more about deploying a bot to Azure, see [Deploy your bot to Azure](https://aka.ms/azuredeployment) for a complete list of deployment instructions.
-
+- Authenticate bot for post requests (best practice)
+- Integrate with Cognitive Services to leverage the audio clips to understand what was said and act accordingly
+- 
 
 ## Further reading
 
-- [Bot Framework Documentation](https://docs.botframework.com)
+- [Working with the communications API in Microsoft Graph](https://docs.microsoft.com/en-us/graph/api/resources/communications-api-overview?view=graph-rest-beta)
 - [Bot Basics](https://docs.microsoft.com/azure/bot-service/bot-builder-basics?view=azure-bot-service-4.0)
-- [Dialogs](https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-concept-dialog?view=azure-bot-service-4.0)
-- [Gathering Input Using Prompts](https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-prompts?view=azure-bot-service-4.0)
-- [Activity processing](https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-concept-activity-processing?view=azure-bot-service-4.0)
-- [Azure Bot Service Introduction](https://docs.microsoft.com/azure/bot-service/bot-service-overview-introduction?view=azure-bot-service-4.0)
-- [Azure Bot Service Documentation](https://docs.microsoft.com/azure/bot-service/?view=azure-bot-service-4.0)
-- [Azure CLI](https://docs.microsoft.com/cli/azure/?view=azure-cli-latest)
-- [Azure Portal](https://portal.azure.com)
 - [Language Understanding using LUIS](https://docs.microsoft.com/en-us/azure/cognitive-services/luis/)
 - [Channels and Bot Connector Service](https://docs.microsoft.com/en-us/azure/bot-service/bot-concepts?view=azure-bot-service-4.0)
 - [Restify](https://www.npmjs.com/package/restify)
 - [dotenv](https://www.npmjs.com/package/dotenv)
+- [yeoman bot builder generator](https://www.npmjs.com/package/generator-botbuilder?activeTab=readme)
