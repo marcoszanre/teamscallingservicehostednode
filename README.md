@@ -22,16 +22,16 @@ Disclaimer 3: Official samples (including C#) are available in the [following li
 ## To run the bot
 
 - Initiate ngrok "*ngrok http 8080*" and take note of the Forwarding Address
-- Create a new app with Teams App Studio and register a new bot with the personal scope (take note of the App ID and App Secret values - **don't forget to enable calling for this bot and developer preview for your Teams web/desktop client**)
+- Create a new Azure AD Application Registration in your tenant and assign and consent to proper permissions - Azure AD (*https://aad.portal.azure.com*) | Calling Bot Permissions according to the [documentation](https://docs.microsoft.com/en-us/graph/api/resources/communications-api-overview?view=graph-rest-beta) 
+- Create a new "Bot Channel Registration" in Azure and configure its identity to that of your Azure AD app registration id and secret/password
 - Fill out the bot messages and calling endpoints as follow: ngrokForwardingAddress/api/messages and ngrokForwardingAddress/api/calls
-- Open the bot registration in Azure AD (*https://aad.portal.azure.com*) and enable and consent the calling bot permissions, according to the [documentation](https://docs.microsoft.com/en-us/graph/api/resources/communications-api-overview?view=graph-rest-beta)
 - Git clone this repository
-- Create a new .env file, if not available, and add (and fill out) the following items: MicrosoftAppId, MicrosoftAppPassword, tenantID, ngrok and playPromptURL. For the playPromptURL, I recommend a small wav file, that could be hosted in an Azure blob storage.
+- Create a new .env file, if not available, and add (and fill out) the following items: MicrosoftAppId, MicrosoftAppPassword, tenantID, ngrok and playPromptURL. For the playPromptURL, I recommend a small wav file, that could be hosted in an Azure blob storage. If you want to configure the bot to join a meeting, add also the following values: userId, userDisplayName and threadId.
 - Install all dependencies (*npm install*)
 - From a console, e.g. PowerShell, run "*node index.js*"
 - Install the Teams App Studio and call the bot
 
-Moreover, it is highly recommended to inspect calls being made to your ngrok Forwarding Address endpoint through the following URL (http://localhost:4040), and optionally, additional calls, once the call has been established, can be made directly through Postman or Fiddler (e.g. play prompt, record audio clip or subscribe to tone).
+Moreover, it is highly recommended to inspect calls being made to your ngrok Forwarding Address endpoint through the following URL (http://localhost:4040/inspect/http), and optionally, additional calls, once the call has been established, can be made directly through Postman or Fiddler (e.g. play prompt, record audio clip or subscribe to tone).
 
 The usage flow for this demo bot is as follows:
 
@@ -46,6 +46,16 @@ This bot implements the following Microsoft Graph calling endpoints:
 - Record Audio Clip
 - Delete (Hang Up)
 - Listen for notification events
+
+In addition, if you want to test joining a meeting from your bot:
+
+1. Create a meeting in Teams and grab from the URL its threadId (ex: 19:meeting_"MEETINGID"@thread.v2)
+2. Copy as well the organizer Display Name and ID and paste them in the respective .env values (userId, userDisplayName and threadId)
+3. Join the call from the organizer (or any other invited user)
+4. From Postman (or the tool of your choice), call the endpoint "localhost:8080/api/calls/join" to join the meeting
+5. If it works as expected, your bot should join the call
+
+If you want to, there's also an endpoint for muting, that you can use to mute your bot in the meeting, or you can leverage the documentation to play a prompt or other support IVR interaction.
 
 ### Next Steps
 

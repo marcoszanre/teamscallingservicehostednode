@@ -1,28 +1,43 @@
 const dotenv = require('dotenv');
 const path = require('path');
 const restify = require('restify');
-const request = require('request');
+const fetch = require("node-fetch");
+var qs = require('qs');
 
 // Import required bot configuration.
 const ENV_FILE = path.join(__dirname, '.env');
 dotenv.config({ path: ENV_FILE });
 
-let accessToken = 'blank';
+// Initialize access token variable
+let accessToken = "";
 
-var tokenEndpoint = 'https://login.microsoftonline.com/' + process.env.tenantID + '/oauth2/v2.0/token';
+getToken();
 
-request.post({
-    url: tokenEndpoint,
-    form: {
+async function getToken() {
+    
+    const tokenEndpoint = 'https://login.microsoftonline.com/' + process.env.tenantID + '/oauth2/v2.0/token';
+    
+    const tokenPayload = {
         grant_type: 'client_credentials',
-        client_id: process.env.MicrosoftAppId,
-        client_secret: process.env.MicrosoftAppPassword,
+        client_id: process.env.BotChannelRegistrationId,
+        client_secret: process.env.BotChannelRegistrationPassword,
         scope: 'https://graph.microsoft.com/.default'
     }
-}, function (err, httpResponse, body) {
-    accessToken = JSON.parse(body).access_token
+    
+    // Retrieve Token
+    const tokenRequest = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        },
+        body: qs.stringify(tokenPayload),
+    });
+
+    const response = await tokenRequest.json();
+    accessToken = response.access_token;
     console.log('\n' + '--------THIS IS YOUR ACCESS TOKEN------------' + '\n' + '\n' + accessToken + '\n' + '\n' + '_____________________________________________' + '\n' + '\n' + 'Waiting for call to be placed...');
-})
+    
+}
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
@@ -33,6 +48,10 @@ const { MyBot } = require('./bot');
 
 // Create HTTP server
 const server = restify.createServer();
+
+// Initial Values
+const callbackUri = process.env.ngrok + "/api/calls/hub";
+const basePath = "https://graph.microsoft.com/v1.0/communications/calls/";
 
 server.use(restify.plugins.bodyParser({
     maxBodySize: 0,
@@ -46,8 +65,8 @@ server.listen(process.env.port || process.env.PORT || 8080, () => {
 // Create adapter.
 // See https://aka.ms/about-bot-adapter to learn more about how bots work.
 const adapter = new BotFrameworkAdapter({
-    appId: process.env.MicrosoftAppId,
-    appPassword: process.env.MicrosoftAppPassword
+    appId: process.env.BotChannelRegistrationId,
+    appPassword: process.env.BotChannelRegistrationPassword
 });
 
 // Catch-all for errors.
@@ -76,6 +95,7 @@ server.post('/api/calls', (req, res) => {
     let CommID = req.body.value[0].resourceData.id;
     console.log('INCOMING CALL...')
     res.send(202);
+    res.end();
     answerCall(CommID);
 
 });
@@ -84,6 +104,7 @@ server.post('/api/calls', (req, res) => {
 server.post('/api/calls/hub', (req, res) => {
 
     res.send(202);
+    res.end();
 
     let CommID = req.body.value[0].resourceUrl.split("/")[3];
 
@@ -101,7 +122,7 @@ server.post('/api/calls/hub', (req, res) => {
 
             // CALL ESTABLISHED, PLAY MEDIA PROMPT
             if ((req.body.value[0].resourceData).hasOwnProperty('mediaState')) {
-                console.log('Call Established. Press 1 to record an audio clip (and * after the recording) and 1 to hang up! :)');
+                console.log('Call Established. Press 1 to record an audio clip (and * after the recording) and 2 to hang up! :)');
                 playPrompt(CommID);
                 subscribeToTone(CommID);
             }
@@ -131,77 +152,91 @@ server.post('/api/calls/hub', (req, res) => {
             console.log('____________________________________________________________________');
         }
 
-    } else {
-
+    }
+    
+    if (req.body.value[0]) {
+        const response = JSON.stringify(req.body.value[0]);
+        console.log('\n' + response + '\n');    
     }
     
 });
 
-function answerCall(CommID) {
-    let answergraphURL = 'https://graph.microsoft.com/beta/app/calls/' + CommID + '/answer';
+async function answerCall(CommID) {
+    const answergraphURL = basePath + CommID + '/answer';
     console.log('This is the endpoint to answer: ' + answergraphURL);
 
-            request.post(
-                {
-                    url:answergraphURL,
-                    json: 
-                    {
-                        "callbackUri": process.env.ngrok + "/api/calls/hub",
-                        "acceptedModalities": [ "audio" ],
-                        "mediaConfig": {
-                            "@odata.type": "#microsoft.graph.serviceHostedMediaConfig"
-                        }
-                    }
-            }).auth(null, null, true, accessToken);
+    const answerPayload = {
+        "callbackUri": process.env.ngrok + "/api/calls/hub",
+        "acceptedModalities": [ "audio" ],
+        "mediaConfig": {
+            "@odata.type": "#microsoft.graph.serviceHostedMediaConfig"
+        }
+    }
+
+    // Answer Call
+    await fetch(answergraphURL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': "Bearer " + accessToken,
+        },
+        body: JSON.stringify(answerPayload),
+    });
+
+    // const response = await answerRequest.();
 }
 
-function playPrompt(CommID) {
+async function playPrompt(CommID) {
     
-    let playPromptgraphURL = 'https://graph.microsoft.com/beta/app/calls/' + CommID + '/playPrompt';
+    const playPromptgraphURL = basePath + CommID + '/playPrompt';
         // PLAY PROMPT
-        request.post(
-            {
-                url:playPromptgraphURL,
-                json: 
+        const playPromptPayload = {
+            "clientContext": "playprompt-client-context",
+            "prompts": [
                 {
-                    "clientContext": "playprompt-client-context",
-                    "prompts": [
-                        {
-                        "@odata.type": "#microsoft.graph.mediaPrompt",
-                        "mediaInfo": {
-                            "@odata.type": "#microsoft.graph.mediaInfo",
-                            "uri": process.env.playPromptURL,
-                            "resourceId": "2G6DE2D4-CD51-4309-8DAA-70768651088E"
-                        }
-                        }
-                    ],
-                    "loop": false
+                "@odata.type": "#microsoft.graph.mediaPrompt",
+                "mediaInfo": {
+                    "@odata.type": "#microsoft.graph.mediaInfo",
+                    "uri": process.env.playPromptURL,
+                    "resourceId": "my-play-prompt"
                 }
-        }).auth(null, null, true, accessToken), function(err,httpResponse,body)
-        {
-            if (err) {
-                console.log(err);
-            }
-            console(body);
-        };
+                }
+            ],
+            "loop": false
+        }
+    
+        // Play Prompt
+        await fetch(playPromptgraphURL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': "Bearer " + accessToken,
+            },
+            body: JSON.stringify(playPromptPayload),
+        });
+
 }
 
-function subscribeToTone(CommID) {
+async function subscribeToTone(CommID) {
     
-    let subscribeToTonegraphURL = 'https://graph.microsoft.com/beta/app/calls/' + CommID + '/subscribeToTone';
-        // PLAY PROMPT
-        request.post(
-            {
-                url:subscribeToTonegraphURL,
-                json: 
-                {
-                    "clientContext": "subscribing-to-tone-client-context",
-                }
-        }).auth(null, null, true, accessToken), function(err,httpResponse,body)
-        {
-                console('Successfully subsribed to tone :D');
-        };
+    const subscribeToTonegraphURL = basePath + CommID + '/subscribeToTone';
+        // SUBSCRIBE TO TONE
+        const subscribePayload = {
+            "clientContext": "subscribing-to-tone-client-context"
+        }
+    
+        // Subscribe to Tone
+        await fetch(subscribeToTonegraphURL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': "Bearer " + accessToken,
+            },
+            body: JSON.stringify(subscribePayload),
+        });
+
 }
+
 
 function runToneLogic(CommID, dialedTone) {
     
@@ -218,6 +253,11 @@ function runToneLogic(CommID, dialedTone) {
         hangUp(CommID)
         console.log('Hanging up, bye! :)');
         break;
+        
+        // Process recording
+        case 'r':
+        console.log("Closing recording, if you're coming from tone 1!");
+        break;
 
         // NOT MANAGED TONE
         default:
@@ -225,47 +265,178 @@ function runToneLogic(CommID, dialedTone) {
         break;
     }
 
-    let subscribeToTonegraphURL = 'https://graph.microsoft.com/beta/app/calls/' + CommID + '/subscribeToTone';
-        // PLAY PROMPT
-        request.post(
-            {
-                url:subscribeToTonegraphURL,
-                json: 
-                {
-                    "clientContext": "subscribing-to-tone-client-context",
-                }
-        }).auth(null, null, true, accessToken), function(err,httpResponse,body)
-        {
-                console('Successfully subsribed to tone :D');
-    };
 }
 
-function recordAudioClip(CommID) {
+async function recordAudioClip(CommID) {
     
-    let recordAudioClipGraphURL = 'https://graph.microsoft.com/beta/app/calls/' + CommID + '/record';
-        // PLAY PROMPT
-        console.log('To finish recording, press * ')
-        request.post(
-            {
-                url:recordAudioClipGraphURL,
-                json: 
-                {
-                    "bargeInAllowed": true,
-                    "clientContext": "record-audio-clip-context",
-                    "maxRecordDurationInSeconds": 10,
-                    "initialSilenceTimeoutInSeconds": 5,
-                    "maxSilenceTimeoutInSeconds": 2,
-                    "playBeep": true,
-                    "stopTones": [ "*" ]
-                }
-        }).auth(null, null, true, accessToken);
+    const recordAudioClipGraphURL = 'https://graph.microsoft.com/v1.0/communications/calls/' + CommID + '/record';
+        // RECORD PROMPT
+        const recordPayload = {
+            "bargeInAllowed": true,
+            "clientContext": "record-audio-clip-context",
+            "maxRecordDurationInSeconds": 10,
+            "initialSilenceTimeoutInSeconds": 5,
+            "maxSilenceTimeoutInSeconds": 2,
+            "playBeep": true,
+            "stopTones": [ "*" ]
+        }
+    
+        // Send Record
+        await fetch(recordAudioClipGraphURL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': "Bearer " + accessToken,
+            },
+            body: JSON.stringify(recordPayload),
+        });
+
 }
 
-function hangUp(CommID) {
-    let hangUpgraphURL = 'https://graph.microsoft.com/beta/app/calls/' + CommID;
+async function hangUp(CommID) {
+    const hangUpgraphURL = basePath + CommID;
         // HANG UP
-        request.delete(
-            {
-                url:hangUpgraphURL
-        }).auth(null, null, true, accessToken);
+        await fetch(hangUpgraphURL, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': "Bearer " + accessToken,
+            },
+        });
+
 }
+
+// Create calls ** NOT WORKING **
+server.post('/api/calls/create', async (req, res) => {
+
+    console.log("endpoint called");
+
+    const callData = {
+        "@odata.type": "#microsoft.graph.call",
+        "callbackUri": callbackUri,
+        "targets": [
+          {
+            "@odata.type": "#microsoft.graph.invitationParticipantInfo",
+            "identity": {
+              "@odata.type": "#microsoft.graph.identitySet",
+              "user": {
+                "@odata.type": "#microsoft.graph.identity",
+                "displayName": process.env.userDisplayName,
+                "id": process.env.userId
+              }
+            }
+          }
+        ],
+        "requestedModalities": [
+          "audio"
+        ],
+        "mediaConfig": {
+          "@odata.type": "#microsoft.graph.serviceHostedMediaConfig"
+        }
+    }
+
+    // Initiate Call
+    const callRequest = await fetch(basePath, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + accessToken
+        },
+        body: JSON.stringify(callData),
+    });
+
+    console.log(callRequest.status);
+    res.send(callRequest.status)
+    
+});
+
+// Join Scheduled Meeting
+server.post('/api/calls/join', async (req, res) => {
+
+    console.log("endpoint called, let's try to join you to the meeting!");
+
+    const callData = {
+        "@odata.type": "#microsoft.graph.call",
+        "callbackUri": callbackUri,
+        "requestedModalities": [
+          "audio"
+        ],
+        "mediaConfig": {
+          "@odata.type": "#microsoft.graph.serviceHostedMediaConfig",
+          "preFetchMedia": [
+           {
+             "uri": process.env.playPromptURL,
+             "resourceId": "play-prompt"
+           }
+          ],
+        },
+        "chatInfo": {
+          "@odata.type": "#microsoft.graph.chatInfo",
+          "threadId": process.env.threadId,
+          "messageId": "0"
+        },
+        "meetingInfo": {
+          "@odata.type": "#microsoft.graph.organizerMeetingInfo",
+          "organizer": {
+            "@odata.type": "#microsoft.graph.identitySet",
+            "user": {
+              "@odata.type": "#microsoft.graph.identity",
+              "id": process.env.userId,
+              "displayName": process.env.userDisplayName,
+              "tenantId": process.env.tenantID
+            }
+          },
+          "allowConversationWithoutHost": true
+        },
+        "tenantId": process.env.tenantID
+    }
+
+    // Join Meeting
+    const callRequest = await fetch(basePath, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + accessToken
+        },
+        body: JSON.stringify(callData),
+    });
+
+    if (callRequest.status === "201") {
+        console.log("Joining you to the meeting");
+    }
+    
+    res.send(callRequest.status);
+    
+});
+
+// Mute Participant in Meeting ** WORKS ONLY FOR THE BOT **
+server.post('/api/calls/participant/mute', async (req, res) => {
+
+    const callId = req.body.callId;
+    console.log("callid is " + callId);
+
+    const muteURL = basePath + callId + "/participants/" + process.env.userId + "/mute";
+    console.log("mute URL is " + muteURL);
+
+    console.log("endpoint called, let's try to mute a participant in the meeting!");
+
+    const callData = {
+        "clientContext": "mute-participant"
+    }
+
+    // Join Meeting
+    const callRequest = await fetch(muteURL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + accessToken
+        },
+        body: JSON.stringify(callData),
+    });
+
+    if (callRequest.status === "200") {
+        console.log("Muting specified participant! ;)");
+    }
+    
+    res.send(callRequest.status);
+    
+});
